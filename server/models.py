@@ -13,14 +13,10 @@ bcrypt = Bcrypt()
 
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
-    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, unique=True, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
-
-    # Relationship: A user owns many workouts
     workouts = db.relationship('Workout', backref='user', cascade="all, delete-orphan")
-    
     serialize_rules = ('-workouts.user', '-_password_hash')
 
     @hybrid_property
@@ -37,10 +33,9 @@ class User(db.Model, SerializerMixin):
 
 class Workout(db.Model, SerializerMixin):
     __tablename__ = 'workouts'
-    
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
     notes = db.Column(db.String)
+    duration = db.Column(db.Integer)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
     serialize_rules = ('-user.workouts',)

@@ -51,8 +51,6 @@ class Workouts(Resource):
         u_id = session.get('user_id')
         if not u_id:
             return make_response({"error": "Unauthorized"}, 401)
-        
-        # Pagination requirement
         page = request.args.get('page', 1, type=int)
         workouts_query = Workout.query.filter_by(user_id=u_id).paginate(page=page, per_page=5)
         return make_response([w.to_dict() for w in workouts_query.items], 200)
@@ -62,16 +60,46 @@ class Workouts(Resource):
         if not u_id:
             return make_response({"error": "Unauthorized"}, 401)
         data = request.get_json()
-        workout = Workout(title=data['title'], notes=data.get('notes'), user_id=u_id)
+        workout = Workout(title=data['title'], notes=data.get('notes'), duration=data.get('duration'), user_id=u_id)
         db.session.add(workout)
         db.session.commit()
         return make_response(workout.to_dict(), 201)
+
+class WorkoutByID(Resource):
+    def patch(self, id):
+        u_id = session.get('user_id')
+        if not u_id:
+            return make_response({"error": "Unauthorized"}, 401)
+        workout = Workout.query.filter_by(id=id).first()
+        if not workout:
+            return make_response({"error": "Workout not found"}, 404)
+        if workout.user_id != u_id:
+            return make_response({"error": "Forbidden"}, 403)
+        data = request.get_json()
+        for key, value in data.items():
+            setattr(workout, key, value)
+        db.session.commit()
+        return make_response(workout.to_dict(), 200)
+
+    def delete(self, id):
+        u_id = session.get('user_id')
+        if not u_id:
+            return make_response({"error": "Unauthorized"}, 401)
+        workout = Workout.query.filter_by(id=id).first()
+        if not workout:
+            return make_response({"error": "Workout not found"}, 404)
+        if workout.user_id != u_id:
+            return make_response({"error": "Forbidden"}, 403)
+        db.session.delete(workout)
+        db.session.commit()
+        return make_response({}, 204)
 
 api.add_resource(Signup, '/signup')
 api.add_resource(Login, '/login')
 api.add_resource(Logout, '/logout')
 api.add_resource(CheckSession, '/check_session')
 api.add_resource(Workouts, '/workouts')
+api.add_resource(WorkoutByID, '/workouts/<int:id>')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
